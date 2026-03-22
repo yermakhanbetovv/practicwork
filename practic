@@ -1,0 +1,287 @@
+package eigth;
+
+import java.util.*;
+
+// ===================== OBSERVER=====================
+
+interface IObserver {
+    void update(String message);
+}
+
+interface ISubject {
+    void addObserver(IObserver observer);
+    void removeObserver(IObserver observer);
+    void notifyObservers(String message);
+}
+
+class Subject implements ISubject {
+    private List<IObserver> observers = new ArrayList<>();
+
+    public void addObserver(IObserver observer) {
+        observers.add(observer);
+    }
+
+    public void removeObserver(IObserver observer) {
+        observers.remove(observer);
+    }
+
+    public void notifyObservers(String message) {
+        for (IObserver obs : observers) {
+            obs.update(message);
+        }
+    }
+}
+
+class ConcreteObserver implements IObserver {
+    private String name;
+
+    public ConcreteObserver(String name) {
+        this.name = name;
+    }
+
+    public void update(String message) {
+        System.out.println(name + " received: " + message);
+    }
+}
+
+// ===================== DECORATOR =====================
+
+interface IReport {
+    String generate();
+}
+
+class SalesReport implements IReport {
+    public String generate() {
+        return "Sales: [2026-03-01, 500]\nSales: [2026-03-10, 300]";
+    }
+}
+
+class UserReport implements IReport {
+    public String generate() {
+        return "User: Alice\nUser: Bob";
+    }
+}
+
+abstract class ReportDecorator implements IReport {
+    protected IReport report;
+
+    public ReportDecorator(IReport report) {
+        this.report = report;
+    }
+
+    public String generate() {
+        return report.generate();
+    }
+}
+
+class DateFilterDecorator extends ReportDecorator {
+    public DateFilterDecorator(IReport report) {
+        super(report);
+    }
+
+    public String generate() {
+        return super.generate() + "\n[Date Filter]";
+    }
+}
+
+class SortingDecorator extends ReportDecorator {
+    public SortingDecorator(IReport report) {
+        super(report);
+    }
+
+    public String generate() {
+        return super.generate() + "\n[Sorted]";
+    }
+}
+
+class CsvExportDecorator extends ReportDecorator {
+    public CsvExportDecorator(IReport report) {
+        super(report);
+    }
+
+    public String generate() {
+        return super.generate() + "\n[CSV Export]";
+    }
+}
+
+class PdfExportDecorator extends ReportDecorator {
+    public PdfExportDecorator(IReport report) {
+        super(report);
+    }
+
+    public String generate() {
+        return super.generate() + "\n[PDF Export]";
+    }
+}
+
+class AmountFilterDecorator extends ReportDecorator {
+    public AmountFilterDecorator(IReport report) {
+        super(report);
+    }
+
+    public String generate() {
+        return super.generate() + "\n[Amount > 400]";
+    }
+}
+
+class ReportBuilder {
+    public static IReport build(String type, List<String> options) {
+        IReport report = type.equals("sales") ? new SalesReport() : new UserReport();
+
+        for (String opt : options) {
+            switch (opt) {
+                case "date":
+                    report = new DateFilterDecorator(report);
+                    break;
+                case "sort":
+                    report = new SortingDecorator(report);
+                    break;
+                case "csv":
+                    report = new CsvExportDecorator(report);
+                    break;
+                case "pdf":
+                    report = new PdfExportDecorator(report);
+                    break;
+                case "amount":
+                    report = new AmountFilterDecorator(report);
+                    break;
+            }
+        }
+        return report;
+    }
+}
+
+// ===================== ADAPTER =====================
+
+interface IInternalDeliveryService {
+    void deliverOrder(String orderId);
+    String getDeliveryStatus(String orderId);
+    double calculateCost(String orderId);
+}
+
+class InternalDeliveryService implements IInternalDeliveryService {
+
+    public void deliverOrder(String orderId) {
+        System.out.println("Internal delivery: " + orderId);
+    }
+
+    public String getDeliveryStatus(String orderId) {
+        return "Delivered";
+    }
+
+    public double calculateCost(String orderId) {
+        return 10.0;
+    }
+}
+
+class ExternalLogisticsServiceA {
+    public void shipItem(int id) {
+        System.out.println("A shipping: " + id);
+    }
+
+    public String trackShipment(int id) {
+        return "A: In Transit";
+    }
+
+    public double getPrice(int id) {
+        return 15.5;
+    }
+}
+
+class ExternalLogisticsServiceB {
+    public void sendPackage(String info) {
+        System.out.println("B sending: " + info);
+    }
+
+    public String checkStatus(String code) {
+        return "B: Delivered";
+    }
+
+    public double price(String code) {
+        return 20.0;
+    }
+}
+
+class LogisticsAdapterA implements IInternalDeliveryService {
+    private ExternalLogisticsServiceA service = new ExternalLogisticsServiceA();
+
+    public void deliverOrder(String orderId) {
+        try {
+            service.shipItem(Integer.parseInt(orderId));
+        } catch (Exception e) {
+            System.out.println("Error A: " + e.getMessage());
+        }
+    }
+
+    public String getDeliveryStatus(String orderId) {
+        return service.trackShipment(Integer.parseInt(orderId));
+    }
+
+    public double calculateCost(String orderId) {
+        return service.getPrice(Integer.parseInt(orderId));
+    }
+}
+
+class LogisticsAdapterB implements IInternalDeliveryService {
+    private ExternalLogisticsServiceB service = new ExternalLogisticsServiceB();
+
+    public void deliverOrder(String orderId) {
+        service.sendPackage(orderId);
+    }
+
+    public String getDeliveryStatus(String orderId) {
+        return service.checkStatus(orderId);
+    }
+
+    public double calculateCost(String orderId) {
+        return service.price(orderId);
+    }
+}
+
+class DeliveryServiceFactory {
+    public static IInternalDeliveryService getService(String type) {
+        switch (type) {
+            case "internal":
+                return new InternalDeliveryService();
+            case "A":
+                return new LogisticsAdapterA();
+            case "B":
+                return new LogisticsAdapterB();
+            default:
+                throw new IllegalArgumentException("Unknown service");
+        }
+    }
+}
+
+// ===================== MAIN =====================
+
+public class Main {
+    public static void main(String[] args) {
+
+        // 🔹 DECORATOR
+        IReport report = ReportBuilder.build(
+                "sales",
+                Arrays.asList("date", "sort", "csv", "amount")
+        );
+
+        System.out.println(report.generate());
+
+        System.out.println("------------");
+
+        // 🔹 ADAPTER
+        IInternalDeliveryService service = DeliveryServiceFactory.getService("A");
+
+        service.deliverOrder("123");
+        System.out.println(service.getDeliveryStatus("123"));
+        System.out.println("Cost: " + service.calculateCost("123"));
+
+        System.out.println("------------");
+
+        // 🔹 OBSERVER (чтобы не было ошибки)
+        Subject subject = new Subject();
+        subject.addObserver(new ConcreteObserver("User1"));
+        subject.addObserver(new ConcreteObserver("User2"));
+
+        subject.notifyObservers("Order shipped!");
+    }
+}
